@@ -1,5 +1,10 @@
+let originalTabId;
+
 window.addEventListener("DOMContentLoaded", async () => {
+  // Store the ID of the original tab
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  originalTabId = tab.id;
+  
   const dataElement = document.getElementById("data");
   const statusElement = document.getElementById("status");
 
@@ -16,16 +21,14 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     const extractedData = results[0]?.result;
     if (extractedData) {
-      // Display the extracted data
       dataElement.innerText = extractedData;
-      // Copy to clipboard
+      
       navigator.clipboard.writeText(extractedData).then(() => {
-        // Update status to success
         statusElement.innerText = "Data has been copied to clipboard.";
         statusElement.classList.add("success");
         statusElement.classList.remove("error");
 
-        // Redirect to the Google Sheets tab or open it
+        // Redirect to Google Sheets and close the original tab
         redirectToGoogleSheets();
       }).catch((err) => {
         statusElement.innerText = "Failed to copy data.";
@@ -55,36 +58,32 @@ function extractData() {
     return "";
   }
 
-  let name = getTextByLabel("Name");
+  // Extract data and ensure only the first part before a comma is captured
+  let name = getTextByLabel("Name").split(",")[0].trim(); // Capture only the part before any comma
   let mcNumber = getTextByLabel("MC/MX/FF");
-  const contactName = getTextByLabel("Contact Name");
+  let contactName = getTextByLabel("Contact Name").split(",")[0].trim(); // Capture only the part before any comma
   const phone = getTextByLabel("Phone");
 
-  if (name.includes(",")) {
-    name = name.split(",")[0].trim();
-  }
-  if (mcNumber.includes(",")) {
-    mcNumber = mcNumber.split(",")[0].trim();
-  }
-
+  // Format the extracted data as comma-separated values
   return `${contactName}, ${name}, ${mcNumber}, ${phone}`;
 }
 
+
 function redirectToGoogleSheets() {
-  // Query for any Google Sheets tab using broader URL patterns
   chrome.tabs.query({ url: ["*://docs.google.com/spreadsheets/*", "*://*.google.com/spreadsheets/*"] }, (tabs) => {
     if (tabs.length > 0) {
       // Activate the first Google Sheets tab found
       chrome.tabs.update(tabs[0].id, { active: true });
     } else {
-      // Display an error message in the popup if no matching tab is found
       const statusElement = document.getElementById("status");
       statusElement.innerText = "No open Google Sheets tab found.";
       statusElement.classList.add("error");
       statusElement.classList.remove("success");
     }
+
+    // Close the original tab after redirect
+    if (originalTabId) {
+      chrome.tabs.remove(originalTabId);
+    }
   });
 }
-
-
-
