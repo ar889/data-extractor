@@ -1,30 +1,44 @@
-document.getElementById("extract").addEventListener("click", async () => {
+window.addEventListener("DOMContentLoaded", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
+  const dataElement = document.getElementById("data");
+  const statusElement = document.getElementById("status");
+
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
     function: extractData,
+  }, (results) => {
+    if (chrome.runtime.lastError) {
+      statusElement.innerText = "Error extracting data.";
+      statusElement.classList.add("error");
+      console.error(chrome.runtime.lastError);
+      return;
+    }
+
+    const extractedData = results[0]?.result;
+    if (extractedData) {
+      // Display the extracted data
+      dataElement.innerText = extractedData;
+      // Copy to clipboard
+      navigator.clipboard.writeText(extractedData).then(() => {
+        // Update status to success
+        statusElement.innerText = "Data has been copied to clipboard.";
+        statusElement.classList.add("success");
+        statusElement.classList.remove("error");
+
+        // Redirect to the Google Sheets tab or open it
+        redirectToGoogleSheets();
+      }).catch((err) => {
+        statusElement.innerText = "Failed to copy data.";
+        statusElement.classList.add("error");
+        statusElement.classList.remove("success");
+        console.error("Failed to copy:", err);
+      });
+    } else {
+      statusElement.innerText = "No data found.";
+      statusElement.classList.add("error");
+      statusElement.classList.remove("success");
+    }
   });
-});
-
-document.getElementById("copy").addEventListener("click", () => {
-  const textToCopy = document.getElementById("status").innerText;
-  const copyButton = document.getElementById("copy");
-
-  if (textToCopy) {
-    navigator.clipboard.writeText(textToCopy).then(() => {
-      // Change button text and color to indicate success
-      copyButton.innerText = "Copied!";
-      copyButton.classList.add("copied");
-
-      // Revert text and color after a delay
-      setTimeout(() => {
-        copyButton.innerText = "Copy to Clipboard";
-        copyButton.classList.remove("copied");
-      }, 2000);
-    }).catch((err) => {
-      console.error("Failed to copy: ", err);
-    });
-  }
 });
 
 function extractData() {
@@ -41,17 +55,36 @@ function extractData() {
     return "";
   }
 
-  const name = getTextByLabel("Name");
-  const mcNumber = getTextByLabel("MC/MX/FF");
+  let name = getTextByLabel("Name");
+  let mcNumber = getTextByLabel("MC/MX/FF");
   const contactName = getTextByLabel("Contact Name");
   const phone = getTextByLabel("Phone");
 
-  const extractedData = `${contactName},${name},${mcNumber},${phone}`;
-  chrome.runtime.sendMessage({ data: extractedData });
+  if (name.includes(",")) {
+    name = name.split(",")[0].trim();
+  }
+  if (mcNumber.includes(",")) {
+    mcNumber = mcNumber.split(",")[0].trim();
+  }
+
+  return `${contactName}, ${name}, ${mcNumber}, ${phone}`;
 }
 
-chrome.runtime.onMessage.addListener((request) => {
-  if (request.data) {
-    document.getElementById("status").innerText = request.data;
-  }
-});
+function redirectToGoogleSheets() {
+  // Query for any Google Sheets tab using broader URL patterns
+  chrome.tabs.query({ url: ["*://docs.google.com/spreadsheets/*", "*://*.google.com/spreadsheets/*"] }, (tabs) => {
+    if (tabs.length > 0) {
+      // Activate the first Google Sheets tab found
+      chrome.tabs.update(tabs[0].id, { active: true });
+    } else {
+      // Display an error message in the popup if no matching tab is found
+      const statusElement = document.getElementById("status");
+      statusElement.innerText = "No open Google Sheets tab found.";
+      statusElement.classList.add("error");
+      statusElement.classList.remove("success");
+    }
+  });
+}
+
+
+
