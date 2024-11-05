@@ -2,10 +2,55 @@
 <html>
 <head>
   <title>Data Extractor</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+
+    button {
+      padding: 10px 15px;
+      margin: 5px;
+      border: none;
+      border-radius: 5px;
+      color: white;
+      font-weight: bold;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    #extract {
+      background-color: #4CAF50;
+    }
+
+    #extract:hover {
+      background-color: #45a049;
+    }
+
+    #copy {
+      background-color: #008CBA;
+    }
+
+    #copy:hover {
+      background-color: #007bb5;
+    }
+
+    #status {
+      color: #333;
+      margin-top: 15px;
+      font-size: 14px;
+    }
+
+    .copied {
+      background-color: #5cb85c !important;
+    }
+  </style>
 </head>
 <body>
   <button id="extract">Extract Data</button>
-  <p style="padding: 10px;" id="status"></p>
+  <button id="copy">Copy to Clipboard</button>
+  <p id="status"></p>
   <script src="popup.js"></script>
 </body>
 </html>
