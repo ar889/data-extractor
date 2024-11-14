@@ -79,15 +79,8 @@ function extractData() {
 
   let name = getTextByLabel("Name");
   let mcNumber = getTextByLabel("MC/MX/FF");
-  const contactName = getTextByLabel("Contact Name");
+  let contactName = getTextByLabel("Contact Name").split(",")[0].trim(); // Capture only the part before any comma
   const phone = getTextByLabel("Phone");
-
-  if (name.includes(",")) {
-    name = name.split(",")[0].trim();
-  }
-  if (mcNumber.includes(",")) {
-    mcNumber = mcNumber.split(",")[0].trim();
-  }
 
   
   return `${contactName}, ${name}, ${mcNumber},${state}-${count}, ${phone}`;
