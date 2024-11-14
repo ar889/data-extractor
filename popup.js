@@ -1,8 +1,9 @@
+let originalTabId;
 window.addEventListener("DOMContentLoaded", async () => {
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
   const dataElement = document.getElementById("data");
   const statusElement = document.getElementById("status");
-
+  originalTabId = tab.id;
   chrome.scripting.executeScript({
     target: { tabId: tab.id },
     function: extractData,
@@ -88,7 +89,8 @@ function extractData() {
     mcNumber = mcNumber.split(",")[0].trim();
   }
 
-  return `${contactName}, ${name}, ${mcNumber}, ${phone},${state}-${count}`;
+  
+  return `${contactName}, ${name}, ${mcNumber},${state}-${count}, ${phone}`;
 }
 
 function redirectToGoogleSheets() {
@@ -105,6 +107,9 @@ function redirectToGoogleSheets() {
       statusElement.classList.remove("success");
     }
   });
+  if (originalTabId) {
+    chrome.tabs.remove(originalTabId);
+  }
 }
 
 
