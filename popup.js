@@ -1,10 +1,5 @@
-let originalTabId;
-
 window.addEventListener("DOMContentLoaded", async () => {
-  // Store the ID of the original tab
   const [tab] = await chrome.tabs.query({ active: true, currentWindow: true });
-  originalTabId = tab.id;
-  
   const dataElement = document.getElementById("data");
   const statusElement = document.getElementById("status");
 
@@ -21,14 +16,16 @@ window.addEventListener("DOMContentLoaded", async () => {
 
     const extractedData = results[0]?.result;
     if (extractedData) {
+      // Display the extracted data
       dataElement.innerText = extractedData;
-      
+      // Copy to clipboard
       navigator.clipboard.writeText(extractedData).then(() => {
+        // Update status to success
         statusElement.innerText = "Data has been copied to clipboard.";
         statusElement.classList.add("success");
         statusElement.classList.remove("error");
 
-        // Redirect to Google Sheets and close the original tab
+        // Redirect to the Google Sheets tab or open it
         redirectToGoogleSheets();
       }).catch((err) => {
         statusElement.innerText = "Failed to copy data.";
@@ -45,6 +42,27 @@ window.addEventListener("DOMContentLoaded", async () => {
 });
 
 function extractData() {
+  // Extract the location (e.g., "ANCHORAGE, AK")
+  const locationElement = document.querySelector(".ui.large.inverted.header .sub.header");
+  let state = "Location not found";
+  
+  if (locationElement) {
+    const location = locationElement.innerText.trim();
+    const parts = location.split(","); // Split by comma
+    if (parts.length > 1) {
+      state = parts[1].trim(); // Get the second part (state abbreviation)
+    }
+  }
+
+  // Find the truck or tractor count
+  const truckOrTractorElement = Array.from(document.querySelectorAll(".ui.large.orange.label")).find((element) => {
+    const keyElement = element.querySelector(".key");
+    return keyElement && (keyElement.innerText.trim() === "Trucks" || keyElement.innerText.trim() === "Tractors");
+  });
+
+  // Extract the count value if found
+  const count = truckOrTractorElement ? truckOrTractorElement.querySelector(".value").innerText.trim() : "Count not found";
+
   function getTextByLabel(label) {
     const elements = document.querySelectorAll("div");
     for (const element of elements) {
@@ -58,32 +76,36 @@ function extractData() {
     return "";
   }
 
-  // Extract data and ensure only the first part before a comma is captured
-  let name = getTextByLabel("Name").split(",")[0].trim(); // Capture only the part before any comma
+  let name = getTextByLabel("Name");
   let mcNumber = getTextByLabel("MC/MX/FF");
-  let contactName = getTextByLabel("Contact Name").split(",")[0].trim(); // Capture only the part before any comma
+  const contactName = getTextByLabel("Contact Name");
   const phone = getTextByLabel("Phone");
 
-  // Format the extracted data as comma-separated values
-  return `${contactName}, ${name}, ${mcNumber}, ${phone}`;
+  if (name.includes(",")) {
+    name = name.split(",")[0].trim();
+  }
+  if (mcNumber.includes(",")) {
+    mcNumber = mcNumber.split(",")[0].trim();
+  }
+
+  return `${contactName}, ${name}, ${mcNumber}, ${phone},${state}-${count}`;
 }
 
-
 function redirectToGoogleSheets() {
+  // Query for any Google Sheets tab using broader URL patterns
   chrome.tabs.query({ url: ["*://docs.google.com/spreadsheets/*", "*://*.google.com/spreadsheets/*"] }, (tabs) => {
     if (tabs.length > 0) {
       // Activate the first Google Sheets tab found
       chrome.tabs.update(tabs[0].id, { active: true });
     } else {
+      // Display an error message in the popup if no matching tab is found
       const statusElement = document.getElementById("status");
       statusElement.innerText = "No open Google Sheets tab found.";
       statusElement.classList.add("error");
       statusElement.classList.remove("success");
     }
-
-    // Close the original tab after redirect
-    if (originalTabId) {
-      chrome.tabs.remove(originalTabId);
-    }
   });
 }
+
+
+
