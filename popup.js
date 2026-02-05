@@ -78,7 +78,12 @@ function extractData() {
   }
 
   let name = getTextByLabel("Name");
-  let mcNumber = getTextByLabel("MC/MX/FF");
+let mcRaw = getTextByLabel("MC/MX/FF");
+
+// ✅ Extract ONLY MC number
+let mcMatch = mcRaw.match(/MC\s*\d+/i);
+let mcNumber = mcMatch ? mcMatch[0].replace(/\s+/g, "") : "";
+
   let contactName = getTextByLabel("Contact Name").split(",")[0].trim(); // Capture only the part before any comma
   const phone = getTextByLabel("Phone");
 
